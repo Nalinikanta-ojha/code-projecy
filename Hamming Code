@@ -1,0 +1,109 @@
+import java.util.Scanner;
+class HammingCode {
+    public static int[] calculateParity(int[] data, int dataBits, int parityBits) {
+        int[] encodedData = new int[dataBits + parityBits];
+        int i = 1, j = 0, k = 0;
+        while (i <= dataBits + parityBits) {
+            if ((i & (i - 1)) == 0) {
+                encodedData[i - 1] = -1;
+            } else {
+                encodedData[i - 1] = data[j++];
+            }
+            i++;
+        }
+        for (i = 0; i < parityBits; i++) {
+            int parity = 0;
+            for (j = 1; j <= dataBits + parityBits; j++) {
+                if (((j >> i) & 1) == 1) {
+                    if (encodedData[j - 1] != -1) {
+                        parity ^= encodedData[j - 1];
+                    }
+                }
+            }
+            k = 1;
+            int powerOfTwo = 1 << i;
+            while (k <= dataBits + parityBits) {
+                if (k == powerOfTwo) {
+                    encodedData[k - 1] = parity;
+                    break;
+                }
+                k++;
+            }
+        }
+        return encodedData;
+    }
+    public static void detectAndCorrect(int[] receivedData, int totalBits, int parityBits) {
+        int syndrome = 0;
+        for (int i = 0; i < parityBits; i++) {
+            int parity = 0;
+            for (int j = 1; j <= totalBits; j++) {
+                if (((j >> i) & 1) == 1) {
+                    parity ^= receivedData[j - 1];
+                }
+            }
+            if (parity != 0) {
+                syndrome |= (1 << i);
+            }
+        }
+        if (syndrome == 0) {
+            System.out.println("\nCongratulations! No error detected.");
+        } else {
+            System.out.println("\nError detected at position: " + syndrome);
+            if (syndrome <= totalBits) {
+                receivedData[syndrome - 1] = 1 - receivedData[syndrome - 1]; // Flip the bit
+                System.out.print("Corrected message is: ");
+                for (int i = 0; i < totalBits; i++) {
+                    System.out.print(receivedData[i] + " ");
+                }
+                System.out.println();
+            } else {
+                System.out.println("Error in parity bit, cannot correct.");
+            }
+        }
+    }
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter the message bits (e.g., 1 0 1 1): ");
+        String input = scanner.nextLine();
+        int dataBits = 0;
+        for (int i = 0; i < input.length(); i++) {
+            if (input.charAt(i) == '0' || input.charAt(i) == '1') {
+                dataBits++;
+            }
+        }
+        int[] data = new int[dataBits];
+        int index = 0;
+        for (int i = 0; i < input.length(); i++) {
+            if (input.charAt(i) == '0' || input.charAt(i) == '1') {
+                data[index++] = input.charAt(i) - '0';
+            }
+        }
+        int parityBits = 1;
+        while (Math.pow(2, parityBits) < dataBits + parityBits + 1) {
+            parityBits++;
+        }
+        int totalBits = dataBits + parityBits;
+        int[] encodedData = calculateParity(data, dataBits, parityBits);
+        System.out.print("\nThe encoded bits are: ");
+        for (int i = 0; i < totalBits; i++) {
+            System.out.print(encodedData[i] + " ");
+        }
+        System.out.println();
+        int[] receivedData = new int[totalBits];
+        System.out.print("\nEnter the received data bits (e.g., 1 0 1 1 0 0 1): ");
+        String receivedInput = scanner.nextLine();
+        index = 0;
+        for (int i = 0; i < receivedInput.length() && index < totalBits; i++) {
+            if (receivedInput.charAt(i) == '0' || receivedInput.charAt(i) == '1') {
+                receivedData[index++] = receivedInput.charAt(i) - '0';
+            }
+        }
+        if (index < totalBits) {
+            System.out.println("Error: Not enough received bits entered.");
+            scanner.close();
+            return;
+        }
+        detectAndCorrect(receivedData, totalBits, parityBits);
+        scanner.close();
+    }
+}
